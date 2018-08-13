@@ -1,0 +1,3 @@
+[submodule "3rdParty/rpg_vikit"]
+	path = 3rdParty/rpg_vikit
+	url = https://github.com/uzh-rpg/rpg_vikit.git
