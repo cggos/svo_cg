@@ -97,10 +97,18 @@ VoNode::~VoNode()
 void VoNode::imgCb(const sensor_msgs::ImageConstPtr& msg)
 {
   cv::Mat img;
-  try {
-    img = cv_bridge::toCvShare(msg, "mono8")->image;
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
+  if(msg->encoding == "8UC1") { // for RealSense ZR300 fisheye camera
+    int img_w = msg->width;
+    int img_h = msg->height;
+    img = cv::Mat(img_h, img_w, CV_8UC1);
+    memcpy(img.data, &msg->data[0], img_w*img_h);
+  }
+  else {
+    try {
+      img = cv_bridge::toCvShare(msg, "mono8")->image;
+    } catch (cv_bridge::Exception& e) {
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+    }
   }
   processUserActions();
   vo_->addImage(img, msg->header.stamp.toSec());

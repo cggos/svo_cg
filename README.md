@@ -42,6 +42,10 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   rviz -d svo_ros/rviz_config.rviz
   rosbag play airground_rig_s3_2013-03-18_21-38-48.bag
   ```
+* on a live camera stream (eg. RealSense ZR300 fisheye camera)
+  - calibrate your camera and modify `svo_ros/param/camera_atan_zr300.yaml`
+  - `roslaunch svo_ros live.launch`
+  - `rviz -d svo_ros/rviz_config.rviz`
 
 
 #### without ROS
@@ -57,11 +61,6 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   cd svo/bin
   ./test_pipeline
   ```
-
-* on a live camera stream
-  - Calibrate your camera (see Camera Calibration) and save a new calibration file in `svo_ros/params/my_camera.yaml`
-  - Adapt the launchfile in `svo_ros/launch/live.launch`: Change the topic and the link to the new calibration file
-  - Start SVO using `roslaunch svo_ros live.launch`
 
 
 ## Supported Camera Model
