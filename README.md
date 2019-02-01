@@ -10,19 +10,22 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
 
 ### Dependencies
 * **Boost** - C++ Librairies (thread and system are needed)
-* **Eigen 3** - Linear algebra
-* **OpenCV** - Computer vision library for loading and displaying images
-* **[Sophus](https://github.com/strasdat/Sophus.git)** - Lie groups
-  ```bash
-  git checkout a621ff
-  ```
-* **[Fast](https://github.com/uzh-rpg/fast.git)** - Corner Detector
-* **[g2o](https://github.com/RainerKuemmerle/g2o.git)** - General Graph Optimization OPTIONAL
-  ```bash
-  https://github.com/RainerKuemmerle/g2o/archive/20160424_git.tar.gz
 
+* **Eigen 3** - Linear algebra
+
+* **OpenCV** - Computer vision library for loading and displaying images
+
+* **[Sophus](https://github.com/strasdat/Sophus.git)** - Lie groups
+  - - recommend version: commit id **a621ff**
+
+* **[Fast](https://github.com/uzh-rpg/fast.git)** - Corner Detector
+
+* **[g2o](https://github.com/RainerKuemmerle/g2o.git)** - General Graph Optimization OPTIONAL
+  - recommend version: commit id **ff647bd** (ff647bd7537860a2b53b3b774ea821a3170feb13)
+  ```bash
   export G2O_ROOT=$HOME/installdir
   ```
+  
 * **[rpg_vikit](https://github.com/uzh-rpg/rpg_vikit.git)** (git submodule)
 
 
