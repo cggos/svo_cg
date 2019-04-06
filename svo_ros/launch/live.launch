@@ -1,6 +1,12 @@
 <?xml version="1.0"?>
 
 <launch>
+
+    <arg name="rviz" default="false"/>
+
+    <group if="$(arg rviz)">
+        <node pkg="rviz" type="rviz" name="svo_rviz" args="-d $(find svo_ros)/rviz_config.rviz"/>
+    </group>
   
     <node pkg="svo_ros" type="vo" name="svo" clear_params="true" output="screen">
     
