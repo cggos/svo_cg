@@ -55,19 +55,22 @@ void AbstractDetector::setGridOccpuancy(const Vector2d& px)
     + static_cast<int>(px[0]/cell_size_)) = true;
 }
 
-FastDetector::FastDetector(
-    const int img_width,
-    const int img_height,
-    const int cell_size,
-    const int n_pyr_levels) :
+FastDetector::FastDetector(const int img_width, const int img_height, const int cell_size, const int n_pyr_levels) :
         AbstractDetector(img_width, img_height, cell_size, n_pyr_levels)
 {}
 
-void FastDetector::detect(
-    Frame* frame,
-    const ImgPyr& img_pyr,
-    const double detection_threshold,
-    Features& fts)
+/**
+ * @brief detect FAST corner and create feature with hight enough corner score
+ * @details
+ *        1) detect FAST corner and Nonmax Suppression on a 3x3 Window on every pyramid level of the image
+ *        2) get the corners with highest Shi-Tomasi score in the cell that for uniform distribution
+ *        3) Create feature for every corner that has high enough corner score
+ * @param frame
+ * @param img_pyr
+ * @param detection_threshold
+ * @param fts
+ */
+void FastDetector::detect(Frame* frame, const ImgPyr& img_pyr, const double detection_threshold, Features& fts)
 {
   Corners corners(grid_n_cols_*grid_n_rows_, Corner(0,0,detection_threshold,0,0.0f));
   for(int L=0; L<n_pyr_levels_; ++L)

@@ -26,16 +26,12 @@
 
 namespace svo {
 
-SparseImgAlign::SparseImgAlign(
-    int max_level, int min_level, int n_iter,
-    Method method, bool display, bool verbose) :
-        display_(display),
-        max_level_(max_level),
-        min_level_(min_level)
+SparseImgAlign::SparseImgAlign(int max_level, int min_level, int n_iter, Method method, bool display, bool verbose) :
+        display_(display), max_level_(max_level), min_level_(min_level)
 {
-  n_iter_ = n_iter;
+  n_iter_      = n_iter;
   n_iter_init_ = n_iter_;
-  method_ = method;
+  method_  = method;
   verbose_ = verbose;
   eps_ = 0.000001;
 }
@@ -52,8 +48,8 @@ size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame)
 
   ref_frame_ = ref_frame;
   cur_frame_ = cur_frame;
-  ref_patch_cache_ = cv::Mat(ref_frame_->fts_.size(), patch_area_, CV_32F);
-  jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows*patch_area_);
+  ref_patch_cache_ = cv::Mat(ref_frame_->fts_.size(), patch_area_, CV_32F);   //      n x 16
+  jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows*patch_area_); // 6 x (n x 16)
   visible_fts_.resize(ref_patch_cache_.rows, false); // TODO: should it be reset at each level?
 
   SE3 T_cur_from_ref(cur_frame_->T_f_w_ * ref_frame_->T_f_w_.inverse());
@@ -68,8 +64,6 @@ size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame)
     optimize(T_cur_from_ref);
   }
   cur_frame_->T_f_w_ = T_cur_from_ref * ref_frame_->T_f_w_;
-
-
 
   return n_meas_/patch_area_;
 }
@@ -87,12 +81,14 @@ void SparseImgAlign::precomputeReferencePatches()
   const cv::Mat& ref_img = ref_frame_->img_pyr_.at(level_);
   const int stride = ref_img.cols;
   const float scale = 1.0f/(1<<level_);
+
   const Vector3d ref_pos = ref_frame_->pos();
   const double focal_length = ref_frame_->cam_->errorMultiplier2();
+
   size_t feature_counter = 0;
   std::vector<bool>::iterator visiblity_it = visible_fts_.begin();
-  for(auto it=ref_frame_->fts_.begin(), ite=ref_frame_->fts_.end();
-      it!=ite; ++it, ++feature_counter, ++visiblity_it)
+
+  for(auto it=ref_frame_->fts_.begin(), ite=ref_frame_->fts_.end(); it!=ite; ++it, ++feature_counter, ++visiblity_it)
   {
     // check if reference with patch size is within image
     const float u_ref = (*it)->px[0]*scale;
@@ -118,11 +114,14 @@ void SparseImgAlign::precomputeReferencePatches()
     const float w_ref_tr = subpix_u_ref * (1.0-subpix_v_ref);
     const float w_ref_bl = (1.0-subpix_u_ref) * subpix_v_ref;
     const float w_ref_br = subpix_u_ref * subpix_v_ref;
+
     size_t pixel_counter = 0;
     float* cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + patch_area_*feature_counter;
+
     for(int y=0; y<patch_size_; ++y)
     {
-      uint8_t* ref_img_ptr = (uint8_t*) ref_img.data + (v_ref_i+y-patch_halfsize_)*stride + (u_ref_i-patch_halfsize_);
+      uint8_t* ref_img_ptr = (uint8_t*) ref_img.data + (v_ref_i-patch_halfsize_+y)*stride + (u_ref_i-patch_halfsize_);
+
       for(int x=0; x<patch_size_; ++x, ++ref_img_ptr, ++cache_ptr, ++pixel_counter)
       {
         // precompute interpolated reference patch color
@@ -130,9 +129,9 @@ void SparseImgAlign::precomputeReferencePatches()
 
         // we use the inverse compositional: thereby we can take the gradient always at the same position
         // get gradient of warped image (~gradient at warped position)
-        float dx = 0.5f * ((w_ref_tl*ref_img_ptr[1] + w_ref_tr*ref_img_ptr[2] + w_ref_bl*ref_img_ptr[stride+1] + w_ref_br*ref_img_ptr[stride+2])
+        float dx = 0.5f * ((w_ref_tl*ref_img_ptr[1]  + w_ref_tr*ref_img_ptr[2] + w_ref_bl*ref_img_ptr[stride+1] + w_ref_br*ref_img_ptr[stride+2])
                           -(w_ref_tl*ref_img_ptr[-1] + w_ref_tr*ref_img_ptr[0] + w_ref_bl*ref_img_ptr[stride-1] + w_ref_br*ref_img_ptr[stride]));
-        float dy = 0.5f * ((w_ref_tl*ref_img_ptr[stride] + w_ref_tr*ref_img_ptr[1+stride] + w_ref_bl*ref_img_ptr[stride*2] + w_ref_br*ref_img_ptr[stride*2+1])
+        float dy = 0.5f * ((w_ref_tl*ref_img_ptr[stride]  + w_ref_tr*ref_img_ptr[1+stride] + w_ref_bl*ref_img_ptr[stride*2] + w_ref_br*ref_img_ptr[stride*2+1])
                           -(w_ref_tl*ref_img_ptr[-stride] + w_ref_tr*ref_img_ptr[1-stride] + w_ref_bl*ref_img_ptr[0] + w_ref_br*ref_img_ptr[1]));
 
         // cache the jacobian
@@ -144,10 +143,7 @@ void SparseImgAlign::precomputeReferencePatches()
   have_ref_patch_cache_ = true;
 }
 
-double SparseImgAlign::computeResiduals(
-    const SE3& T_cur_from_ref,
-    bool linearize_system,
-    bool compute_weight_scale)
+double SparseImgAlign::computeResiduals(const SE3& T_cur_from_ref, bool linearize_system, bool compute_weight_scale)
 {
   // Warp the (cur)rent image such that it aligns with the (ref)erence image
   const cv::Mat& cur_img = cur_frame_->img_pyr_.at(level_);
@@ -162,15 +158,18 @@ double SparseImgAlign::computeResiduals(
   std::vector<float> errors;
   if(compute_weight_scale)
     errors.reserve(visible_fts_.size());
+
   const int stride = cur_img.cols;
   const int border = patch_halfsize_+1;
   const float scale = 1.0f/(1<<level_);
+
   const Vector3d ref_pos(ref_frame_->pos());
   float chi2 = 0.0;
+
   size_t feature_counter = 0; // is used to compute the index of the cached jacobian
   std::vector<bool>::iterator visiblity_it = visible_fts_.begin();
-  for(auto it=ref_frame_->fts_.begin(); it!=ref_frame_->fts_.end();
-      ++it, ++feature_counter, ++visiblity_it)
+
+  for(auto it=ref_frame_->fts_.begin(); it!=ref_frame_->fts_.end(); ++it, ++feature_counter, ++visiblity_it)
   {
     // check if feature is within image
     if(!*visiblity_it)
@@ -181,6 +180,7 @@ double SparseImgAlign::computeResiduals(
     const Vector3d xyz_ref((*it)->f*depth);
     const Vector3d xyz_cur(T_cur_from_ref * xyz_ref);
     const Vector2f uv_cur_pyr(cur_frame_->cam_->world2cam(xyz_cur).cast<float>() * scale);
+
     const float u_cur = uv_cur_pyr[0];
     const float v_cur = uv_cur_pyr[1];
     const int u_cur_i = floorf(u_cur);
@@ -193,20 +193,26 @@ double SparseImgAlign::computeResiduals(
     // compute bilateral interpolation weights for the current image
     const float subpix_u_cur = u_cur-u_cur_i;
     const float subpix_v_cur = v_cur-v_cur_i;
+
     const float w_cur_tl = (1.0-subpix_u_cur) * (1.0-subpix_v_cur);
     const float w_cur_tr = subpix_u_cur * (1.0-subpix_v_cur);
     const float w_cur_bl = (1.0-subpix_u_cur) * subpix_v_cur;
     const float w_cur_br = subpix_u_cur * subpix_v_cur;
+
+    // ref_patch_cache_ (nx16),  start + 16 x i
     float* ref_patch_cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + patch_area_*feature_counter;
     size_t pixel_counter = 0; // is used to compute the index of the cached jacobian
+
     for(int y=0; y<patch_size_; ++y)
     {
-      uint8_t* cur_img_ptr = (uint8_t*) cur_img.data + (v_cur_i+y-patch_halfsize_)*stride + (u_cur_i-patch_halfsize_);
+      // row pointer which point to the row start of the 4x4 patch
+      uint8_t* cur_img_ptr = (uint8_t*) cur_img.data + (v_cur_i-patch_halfsize_+y)*stride + (u_cur_i-patch_halfsize_);
 
       for(int x=0; x<patch_size_; ++x, ++pixel_counter, ++cur_img_ptr, ++ref_patch_cache_ptr)
       {
-        // compute residual
+        // f(i+u,j+v) = [(1−u)(1−v)]f(i,j) + u(1−v)f(i+1,j) + (1−u)vf(i,j+1) + uvf(i+1,j+1)
         const float intensity_cur = w_cur_tl*cur_img_ptr[0] + w_cur_tr*cur_img_ptr[1] + w_cur_bl*cur_img_ptr[stride] + w_cur_br*cur_img_ptr[stride+1];
+        // compute residual
         const float res = intensity_cur - (*ref_patch_cache_ptr);
 
         // used to compute scale for robust cost
@@ -226,7 +232,7 @@ double SparseImgAlign::computeResiduals(
         {
           // compute Jacobian, weighted Hessian and weighted "steepest descend images" (times error)
           const Vector6d J(jacobian_cache_.col(feature_counter*patch_area_ + pixel_counter));
-          H_.noalias() += J*J.transpose()*weight;
+          H_.noalias()    += J*J.transpose()*weight;
           Jres_.noalias() -= J*res*weight;
           if(display_)
             resimg_.at<float>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_) = res/255.0;
@@ -250,9 +256,7 @@ int SparseImgAlign::solve()
   return 1;
 }
 
-void SparseImgAlign::update(
-    const ModelType& T_curold_from_ref,
-    ModelType& T_curnew_from_ref)
+void SparseImgAlign::update(const ModelType& T_curold_from_ref, ModelType& T_curnew_from_ref)
 {
   T_curnew_from_ref =  T_curold_from_ref * SE3::exp(-x_);
 }

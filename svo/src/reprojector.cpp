@@ -76,10 +76,10 @@ void Reprojector::reprojectMap(
   close_kfs.sort(boost::bind(&std::pair<FramePtr, double>::second, _1) <
                  boost::bind(&std::pair<FramePtr, double>::second, _2));
 
-  // Reproject all mappoints of the closest N kfs with overlap. We only store
-  // in which grid cell the points fall.
+  // Reproject all mappoints of the closest N kfs with overlap. We only store in which grid cell the points fall.
   size_t n = 0;
   overlap_kfs.reserve(options_.max_n_kfs);
+
   for(auto it_frame=close_kfs.begin(), ite_frame=close_kfs.end();
       it_frame!=ite_frame && n<options_.max_n_kfs; ++it_frame, ++n)
   {
@@ -87,8 +87,7 @@ void Reprojector::reprojectMap(
     overlap_kfs.push_back(pair<FramePtr,size_t>(ref_frame,0));
 
     // Try to reproject each mappoint that the other KF observes
-    for(auto it_ftr=ref_frame->fts_.begin(), ite_ftr=ref_frame->fts_.end();
-        it_ftr!=ite_ftr; ++it_ftr)
+    for(auto it_ftr=ref_frame->fts_.begin(), ite_ftr=ref_frame->fts_.end(); it_ftr!=ite_ftr; ++it_ftr)
     {
       // check if the feature has a mappoint assigned
       if((*it_ftr)->point == NULL)
@@ -98,6 +97,7 @@ void Reprojector::reprojectMap(
       if((*it_ftr)->point->last_projected_kf_id_ == frame->id_)
         continue;
       (*it_ftr)->point->last_projected_kf_id_ = frame->id_;
+
       if(reprojectPoint(frame, (*it_ftr)->point))
         overlap_kfs.back().second++;
     }

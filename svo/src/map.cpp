@@ -117,9 +117,7 @@ void Map::getCloseKeyframes(
 
       if(frame->isVisible(keypoint->point->pos_))
       {
-        close_kfs.push_back(
-            std::make_pair(
-                kf, (frame->T_f_w_.translation()-kf->T_f_w_.translation()).norm()));
+        close_kfs.push_back(std::make_pair(kf, (frame->T_f_w_.translation()-kf->T_f_w_.translation()).norm()));
         break; // this keyframe has an overlapping field of view -> add to close_kfs
       }
     }

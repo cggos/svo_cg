@@ -113,9 +113,8 @@ public:
 
   /// Frame jacobian for projection of 3D point in (f)rame coordinate to
   /// unit plane coordinates uv (focal length = 1).
-  inline static void jacobian_xyz2uv(
-      const Vector3d& xyz_in_f,
-      Matrix<double,2,6>& J)
+  /// ref: https://blog.csdn.net/u011178262/article/details/85016981
+  inline static void jacobian_xyz2uv(const Vector3d& xyz_in_f, Matrix<double,2,6>& J)
   {
     const double x = xyz_in_f[0];
     const double y = xyz_in_f[1];

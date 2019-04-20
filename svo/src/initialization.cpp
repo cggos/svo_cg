@@ -104,10 +104,16 @@ void KltHomographyInit::reset()
   frame_ref_.reset();
 }
 
-void detectFeatures(
-    FramePtr frame,
-    vector<cv::Point2f>& px_vec,
-    vector<Vector3d>& f_vec)
+/**
+ * @details
+ *        1) get new Features with high enough score FAST corners on pyramid 0 which are uniform distrbution
+ *        2) create px_vec(Coordinates in pixels on pyramid level 0)
+ *             and   f_vec(Unit-bearing vector of the feature)
+ * @param frame
+ * @param px_vec
+ * @param f_vec
+ */
+void detectFeatures(FramePtr frame, vector<cv::Point2f>& px_vec, vector<Vector3d>& f_vec)
 {
   Features new_features;
   feature_detection::FastDetector detector(
@@ -124,6 +130,16 @@ void detectFeatures(
   });
 }
 
+/**
+ * @brief Calculates an optical flow for a sparse feature set using the iterative Lucas-Kanade method with pyramids.
+ * @param frame_ref
+ * @param frame_cur
+ * @param px_ref
+ * @param px_cur
+ * @param f_ref
+ * @param f_cur
+ * @param disparities
+ */
 void trackKlt(
     FramePtr frame_ref,
     FramePtr frame_cur,
@@ -134,8 +150,8 @@ void trackKlt(
     vector<double>& disparities)
 {
   const double klt_win_size = 30.0;
-  const int klt_max_iter = 30;
-  const double klt_eps = 0.001;
+  const int    klt_max_iter = 30;
+  const double klt_eps      = 0.001;
   vector<uchar> status;
   vector<float> error;
   vector<float> min_eig_vec;
@@ -148,7 +164,7 @@ void trackKlt(
 
   vector<cv::Point2f>::iterator px_ref_it = px_ref.begin();
   vector<cv::Point2f>::iterator px_cur_it = px_cur.begin();
-  vector<Vector3d>::iterator f_ref_it = f_ref.begin();
+  vector<Vector3d>::iterator     f_ref_it = f_ref.begin();
   f_cur.clear(); f_cur.reserve(px_cur.size());
   disparities.clear(); disparities.reserve(px_cur.size());
   for(size_t i=0; px_ref_it != px_ref.end(); ++i)
@@ -157,7 +173,7 @@ void trackKlt(
     {
       px_ref_it = px_ref.erase(px_ref_it);
       px_cur_it = px_cur.erase(px_cur_it);
-      f_ref_it = f_ref.erase(f_ref_it);
+      f_ref_it  = f_ref.erase(f_ref_it);
       continue;
     }
     f_cur.push_back(frame_cur->c2f(px_cur_it->x, px_cur_it->y));
@@ -168,6 +184,20 @@ void trackKlt(
   }
 }
 
+/**
+ * @details
+ *        1) compute Homography matrix
+ *        2) get SE3 from Homography matrix
+ *        3) get XYZ pts in current frame bt trianglation
+ *        4) get inliers
+ * @param f_ref
+ * @param f_cur
+ * @param focal_length
+ * @param reprojection_threshold
+ * @param inliers
+ * @param xyz_in_cur
+ * @param T_cur_from_ref
+ */
 void computeHomography(
     const vector<Vector3d>& f_ref,
     const vector<Vector3d>& f_cur,

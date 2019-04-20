@@ -84,6 +84,7 @@ void FrameHandlerMono::addImage(const cv::Mat& img, const double timestamp)
   // set last frame
   last_frame_ = new_frame_;
   new_frame_.reset();
+
   // finish processing
   finishFrameProcessingCommon(last_frame_->id_, res, last_frame_->nObs());
 }
@@ -91,12 +92,16 @@ void FrameHandlerMono::addImage(const cv::Mat& img, const double timestamp)
 FrameHandlerMono::UpdateResult FrameHandlerMono::processFirstFrame()
 {
   new_frame_->T_f_w_ = SE3(Matrix3d::Identity(), Vector3d::Zero());
+
   if(klt_homography_init_.addFirstFrame(new_frame_) == initialization::FAILURE)
     return RESULT_NO_KEYFRAME;
+
   new_frame_->setKeyframe();
   map_.addKeyframe(new_frame_);
+
   stage_ = STAGE_SECOND_FRAME;
   SVO_INFO_STREAM("Init: Selected first frame.");
+
   return RESULT_IS_KEYFRAME;
 }
 
@@ -109,6 +114,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processSecondFrame()
     return RESULT_NO_KEYFRAME;
 
   // two-frame bundle adjustment
+  // Optimize two camera frames and their observed 3D points
 #ifdef USE_BUNDLE_ADJUSTMENT
   ba::twoViewBA(new_frame_.get(), map_.lastKeyframe().get(), Config::lobaThresh(), &map_);
 #endif
@@ -133,8 +139,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
 
   // sparse image align
   SVO_START_TIMER("sparse_img_align");
-  SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                           30, SparseImgAlign::GaussNewton, false, false);
+  SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(), 30, SparseImgAlign::GaussNewton, false, false);
   size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
   SVO_STOP_TIMER("sparse_img_align");
   SVO_LOG(img_align_n_tracked);
@@ -234,9 +239,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   return RESULT_IS_KEYFRAME;
 }
 
-FrameHandlerMono::UpdateResult FrameHandlerMono::relocalizeFrame(
-    const SE3& T_cur_ref,
-    FramePtr ref_keyframe)
+FrameHandlerMono::UpdateResult FrameHandlerMono::relocalizeFrame(const SE3& T_cur_ref, FramePtr ref_keyframe)
 {
   SVO_WARN_STREAM_THROTTLE(1.0, "Relocalizing frame");
   if(ref_keyframe == nullptr)

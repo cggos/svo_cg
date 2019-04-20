@@ -68,9 +68,12 @@ void twoViewBA(
     Point* pt = (*it_ftr)->point;
     if(pt == NULL)
       continue;
+
     g2oPoint* v_pt = createG2oPoint(pt->pos_, v_id++, false);
     optimizer.addVertex(v_pt);
+
     pt->v_pt_ = v_pt;
+
     g2oEdgeSE3* e = createG2oEdgeSE3(v_frame1, v_pt, vk::project2d((*it_ftr)->f), true, reproj_thresh*Config::lobaRobustHuberWidth());
     optimizer.addEdge(e);
     edges.push_back(EdgeContainerSE3(e, frame1, *it_ftr)); // TODO feature now links to frame, so we can simplify edge container!
