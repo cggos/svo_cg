@@ -6,9 +6,7 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
 
 [TOC]
 
-## Build & Run
-
-### Dependencies
+# Dependencies
 
 * **Boost** - C++ Librairies (thread and system are needed)
 
@@ -23,14 +21,14 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
 
 * **[g2o](https://github.com/RainerKuemmerle/g2o.git)** - General Graph Optimization OPTIONAL
   - recommend version: commit id **ff647bd** (ff647bd7537860a2b53b3b774ea821a3170feb13)
-  ```bash
-  export G2O_ROOT=$HOME/installdir
-  ```
+    ```bash
+    export G2O_ROOT=$HOME/installdir
+    ```
 
 * **[rpg_vikit](https://github.com/uzh-rpg/rpg_vikit.git)** (git submodule)
 
 
-### Build
+# Build
 
 * download
   - `git clone https://github.com/cggos/svo_cg.git --recursive`
@@ -38,9 +36,9 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   - `cmake` for Plain CMake (No ROS)
   - `catkin_make` or `catkin build` for ROS
 
-### Run
+# Run
 
-#### with ROS
+## with ROS
 
 * on a Dataset ([airground_rig_s3_2013-03-18_21-38-48.bag](http://rpg.ifi.uzh.ch/datasets/airground_rig_s3_2013-03-18_21-38-48.bag))
   ```bash
@@ -55,7 +53,7 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   ```
 
 
-#### without ROS
+## without ROS
 
 * on a Dataset ([sin2_tex2_h1_v8_d.tar.gz](http://rpg.ifi.uzh.ch/datasets/sin2_tex2_h1_v8_d.tar.gz))
   ```bash
@@ -69,6 +67,7 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   ./test_pipeline
   ```
 
+# Camera Calibration
 
 ## Supported Camera Model
 
@@ -82,8 +81,15 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   * model cameras with **high field of view or even omnidirectional cameras**
   * calibration tool: **OCamCalib toolbox**
 
+## Import Calib Params
 
-## Notation
+use the python scripts in `scripts` directory
+
+* kalibr_to_svo.py
+* omni_matlab_to_rpg.py
+
+
+# Notation
 
 <div align=center>
   <img src="https://raw.githubusercontent.com/uzh-rpg/rpg_svo/master/svo/doc/notation.png">
@@ -101,7 +107,7 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   pos = T_f_w.inverse().translation()
   ```
 
-## Obtaining Best Performance
+# Obtaining Best Performance
 
 In order to obtain the same performance as shown in the videos, consider the following:
 
@@ -114,17 +120,26 @@ In order to obtain the same performance as shown in the videos, consider the fol
 * **Avoid motions of pure rotation**.
 * The keyframe selection is currently designed for **downlooking cameras**. Forward motions are not performing well at the moment.
 
-## Notes
+# Notes
 
 * Forward motions
   - The current keyframe selection criterion is designed for **downward looking cameras**. This is one reason why SVO does not work well for forward motions (e.g., to be used on a car).
 * Image resolution
   - The current parameters are tuned for **WVGA resolution**. If you use a higher resolution camera, then the pyramid levels should be increased as well as the reprojection error thresholds.
 
+# Papers
+
+```bibtex
+@inproceedings{Forster2014ICRA,
+  author = {Forster, Christian and Pizzoli, Matia and Scaramuzza, Davide},
+  title = {{SVO}: Fast Semi-Direct Monocular Visual Odometry},
+  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
+  year = {2014}
+}
+```
+
 # SVO 2.0
 
 [SVO 2.0](http://rpg.ifi.uzh.ch/svo2.html): Fast Semi-Direct Visual Odometry for Monocular, Wide Angle, and Multi-camera Systems.  
 
------
-
-SVO 2.0 (IEEE TRO'17) extends the original SVO impleemntation (ICRA' 14) with the addition of edgletes, IMU prior, wide angle cameras (fisheye and catadioptric), multi-camera configurations, and forward looking camera motion.
+SVO 2.0 (IEEE TRO'17) extends the original SVO implementation (ICRA' 14) with the addition of edgletes, IMU prior, wide angle cameras (fisheye and catadioptric), multi-camera configurations, and forward looking camera motion.
