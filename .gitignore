@@ -1,1 +1,4 @@
 .catkin_workspace
+build/
+bin/
+lib/
