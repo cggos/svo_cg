@@ -60,7 +60,7 @@ FastDetector::FastDetector(const int img_width, const int img_height, const int 
 {}
 
 /**
- * @brief detect FAST corner and create feature with hight enough corner score
+ * @brief detect FAST corner and create feature with high enough corner score
  * @details
  *        1) detect FAST corner and Nonmax Suppression on a 3x3 Window on every pyramid level of the image
  *        2) get the corners with highest Shi-Tomasi score in the cell that for uniform distribution

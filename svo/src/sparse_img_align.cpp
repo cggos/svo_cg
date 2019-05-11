@@ -40,8 +40,7 @@ size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame)
 {
   reset();
 
-  if(ref_frame->fts_.empty())
-  {
+  if(ref_frame->fts_.empty()) {
     SVO_WARN_STREAM("SparseImgAlign: no features to track!");
     return 0;
   }
@@ -52,14 +51,14 @@ size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame)
   jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows*patch_area_); // 6 x (n x 16)
   visible_fts_.resize(ref_patch_cache_.rows, false); // TODO: should it be reset at each level?
 
+  // 帧间位姿初始化
   SE3 T_cur_from_ref(cur_frame_->T_f_w_ * ref_frame_->T_f_w_.inverse());
 
-  for(level_=max_level_; level_>=min_level_; --level_)
-  {
+  for(level_=max_level_; level_>=min_level_; --level_) {
     mu_ = 0.1;
     jacobian_cache_.setZero();
     have_ref_patch_cache_ = false;
-    if(verbose_)
+    if (verbose_)
       printf("\nPYRAMID LEVEL %i\n---------------\n", level_);
     optimize(T_cur_from_ref);
   }
