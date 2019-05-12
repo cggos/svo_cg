@@ -122,6 +122,7 @@ public:
   std::list<Seed>& getSeeds() { return seeds_; }
 
   /// Bayes update of the seed, x is the measurement, tau2 the measurement uncertainty
+  /// Ref: SVO Supplementary matterial
   static void updateSeed(
       const float x,
       const float tau2,

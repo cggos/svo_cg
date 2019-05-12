@@ -160,13 +160,6 @@ void Matcher::createPatchFromPatchWithBorder()
   }
 }
 
-/**
- * @brief
- * @param pt
- * @param cur_frame
- * @param px_cur
- * @return
- */
 bool Matcher::findMatchDirect(const Point& pt, const Frame& cur_frame, Vector2d& px_cur)
 {
   if(!pt.getCloseViewObs(cur_frame.pos(), ref_ftr_))
@@ -282,7 +275,7 @@ bool Matcher::findEpipolarMatchDirect(
     return false;
   }
 
-  size_t n_steps = epi_length_/0.7; // one step per pixel
+  size_t n_steps = epi_length_/0.7; // one step per pixel, 0.7 -> sqrt(2)/2
   Vector2d step = epi_dir_/n_steps;
 
   if(n_steps > options_.max_epi_search_steps)

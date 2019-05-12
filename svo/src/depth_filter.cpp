@@ -206,7 +206,11 @@ void DepthFilter::updateSeeds(FramePtr frame)
   double px_noise = 1.0;
   double px_error_angle = atan(px_noise/(2.0*focal_length))*2.0; // law of chord (sehnensatz)
 
-  while( it!=seeds_.end())
+  /// 1) 极线搜索 findEpipolarMatchDirect
+  /// 2) 计算深度不确定度 computeTau
+  /// 3) 深度融合，更新估计 updateSeed
+  /// 4) initialize a new candidate point and remove the seed
+  while(it!=seeds_.end())
   {
     // set this value true when seeds updating should be interrupted
     if(seeds_updating_halt_)
@@ -308,26 +312,39 @@ void DepthFilter::getSeedsCopy(const FramePtr& frame, std::list<Seed>& seeds)
 
 void DepthFilter::updateSeed(const float x, const float tau2, Seed* seed)
 {
+  // 合成正态分布的标准差
   float norm_scale = sqrt(seed->sigma2 + tau2);
   if(std::isnan(norm_scale))
     return;
+  // 正态分布
   boost::math::normal_distribution<float> nd(seed->mu, norm_scale);
+  // 公式(19)
   float s2 = 1./(1./seed->sigma2 + 1./tau2);
+  // 公式(20)
   float m = s2*(seed->mu/seed->sigma2 + x/tau2);
+  // 公式(21)
   float C1 = seed->a/(seed->a+seed->b) * boost::math::pdf(nd, x);
+  // 公式(22)
   float C2 = seed->b/(seed->a+seed->b) * 1./seed->z_range;
+  // 概率密度函数归一化
   float normalization_constant = C1 + C2;
   C1 /= normalization_constant;
   C2 /= normalization_constant;
+  // 公式(25)
   float f = C1*(seed->a+1.)/(seed->a+seed->b+1.) + C2*seed->a/(seed->a+seed->b+1.);
+  // 公式(26)
   float e = C1*(seed->a+1.)*(seed->a+2.)/((seed->a+seed->b+1.)*(seed->a+seed->b+2.))
           + C2*seed->a*(seed->a+1.0f)/((seed->a+seed->b+1.0f)*(seed->a+seed->b+2.0f));
 
   // update parameters
+  // 公式(23)
   float mu_new = C1*m+C2*seed->mu;
+  // 公式(24)
   seed->sigma2 = C1*(s2 + m*m) + C2*(seed->sigma2 + seed->mu*seed->mu) - mu_new*mu_new;
   seed->mu = mu_new;
+  // 公式(25)(26)联立求a'
   seed->a = (e-f)/(f-e/f);
+  // 公式(25)求b'
   seed->b = seed->a*(1.0f-f)/f;
 }
 
