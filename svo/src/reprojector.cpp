@@ -61,14 +61,23 @@ void Reprojector::resetGrid()
   std::for_each(grid_.cells.begin(), grid_.cells.end(), [&](Cell* c){ c->clear(); });
 }
 
-void Reprojector::reprojectMap(
-    FramePtr frame,
-    std::vector< std::pair<FramePtr,std::size_t> >& overlap_kfs)
+/**
+ * @details
+ *        1) getCloseKeyframes
+ *        2) Sort KFs with overlap according to their closeness
+ *        3) reprojectPoint to Cell: reproject all mappoints of the closest N kfs with overlap;
+ *                                   roject all point candidates
+ *        4) reprojectCell
+ * @param frame
+ * @param overlap_kfs
+ */
+void Reprojector::reprojectMap(FramePtr frame, std::vector< std::pair<FramePtr,std::size_t> >& overlap_kfs)
 {
   resetGrid();
 
   // Identify those Keyframes which share a common field of view.
   SVO_START_TIMER("reproject_kfs");
+  // 计算当前地图中的关键帧与当前帧frame具有共视关系的关键帧，并返回两帧之间的距离
   list< pair<FramePtr,double> > close_kfs;
   map_.getCloseKeyframes(frame, close_kfs);
 
@@ -78,7 +87,7 @@ void Reprojector::reprojectMap(
 
   // Reproject all mappoints of the closest N kfs with overlap. We only store in which grid cell the points fall.
   size_t n = 0;
-  overlap_kfs.reserve(options_.max_n_kfs);
+  overlap_kfs.reserve(options_.max_n_kfs); // 关键帧共视关系数量限制
 
   for(auto it_frame=close_kfs.begin(), ite_frame=close_kfs.end();
       it_frame!=ite_frame && n<options_.max_n_kfs; ++it_frame, ++n)
@@ -98,6 +107,7 @@ void Reprojector::reprojectMap(
         continue;
       (*it_ftr)->point->last_projected_kf_id_ = frame->id_;
 
+      // 如果参考帧的一个特征在当前帧中投影成功，计数+1
       if(reprojectPoint(frame, (*it_ftr)->point))
         overlap_kfs.back().second++;
     }
@@ -133,7 +143,7 @@ void Reprojector::reprojectMap(
   {
     // we prefer good quality points over unkown quality (more likely to match)
     // and unknown quality over candidates (position not optimized)
-    if(reprojectCell(*grid_.cells.at(grid_.cell_order[i]), frame))
+    if(reprojectCell(*grid_.cells.at(grid_.cell_order[i]), frame)) // 随机的投影每个cell，每投影成功一次+1
       ++n_matches_;
     if(n_matches_ > (size_t) Config::maxFts())
       break;
@@ -164,7 +174,7 @@ bool Reprojector::reprojectCell(Cell& cell, FramePtr frame)
 
     bool found_match = true;
     if(options_.find_match_direct)
-      found_match = matcher_.findMatchDirect(*it->pt, *frame, it->px);
+      found_match = matcher_.findMatchDirect(*it->pt, *frame, it->px); // 通过光流法估计patch的位置
     if(!found_match)
     {
       it->pt->n_failed_reproj_++;
@@ -179,6 +189,7 @@ bool Reprojector::reprojectCell(Cell& cell, FramePtr frame)
     if(it->pt->type_ == Point::TYPE_UNKNOWN && it->pt->n_succeeded_reproj_ > 10)
       it->pt->type_ = Point::TYPE_GOOD;
 
+    // 给当前帧中增加新的feature
     Feature* new_feature = new Feature(frame.get(), it->px, matcher_.search_level_);
     frame->addFeature(new_feature);
 
@@ -203,13 +214,14 @@ bool Reprojector::reprojectCell(Cell& cell, FramePtr frame)
   return false;
 }
 
-bool Reprojector::reprojectPoint(FramePtr frame, Point* point)
-{
+bool Reprojector::reprojectPoint(FramePtr frame, Point* point) {
+  // 世界坐标，变换到当前帧下，然后投影到像素坐标
   Vector2d px(frame->w2c(point->pos_));
-  if(frame->cam_->isInFrame(px.cast<int>(), 8)) // 8px is the patch size in the matcher
+  if (frame->cam_->isInFrame(px.cast<int>(), 8)) // 8px is the patch size in the matcher
   {
-    const int k = static_cast<int>(px[1]/grid_.cell_size)*grid_.grid_n_cols
-                + static_cast<int>(px[0]/grid_.cell_size);
+    // 判断该点落在了哪个cell内，则对应的cell内增加候选点
+    const int k = static_cast<int>(px[1] / grid_.cell_size) * grid_.grid_n_cols
+                  + static_cast<int>(px[0] / grid_.cell_size);
     grid_.cells.at(k)->push_back(Candidate(point, px));
     return true;
   }

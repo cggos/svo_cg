@@ -30,6 +30,17 @@ namespace svo {
 
 namespace warp {
 
+/**
+ * @brief Compute affine warp matrix A_ref_cur
+ * @param cam_ref
+ * @param cam_cur
+ * @param px_ref
+ * @param f_ref
+ * @param depth_ref
+ * @param T_cur_ref
+ * @param level_ref
+ * @param A_cur_ref
+ */
 void getWarpMatrixAffine(
     const vk::AbstractCamera& cam_ref,
     const vk::AbstractCamera& cam_cur,
@@ -40,25 +51,32 @@ void getWarpMatrixAffine(
     const int level_ref,
     Matrix2d& A_cur_ref)
 {
-  // Compute affine warp matrix A_ref_cur
   const int halfpatch_size = 5;
   const Vector3d xyz_ref(f_ref*depth_ref);
+
   Vector3d xyz_du_ref(cam_ref.cam2world(px_ref + Vector2d(halfpatch_size,0)*(1<<level_ref)));
   Vector3d xyz_dv_ref(cam_ref.cam2world(px_ref + Vector2d(0,halfpatch_size)*(1<<level_ref)));
+
   xyz_du_ref *= xyz_ref[2]/xyz_du_ref[2];
   xyz_dv_ref *= xyz_ref[2]/xyz_dv_ref[2];
+
   const Vector2d px_cur(cam_cur.world2cam(T_cur_ref*(xyz_ref)));
   const Vector2d px_du(cam_cur.world2cam(T_cur_ref*(xyz_du_ref)));
   const Vector2d px_dv(cam_cur.world2cam(T_cur_ref*(xyz_dv_ref)));
+
+  //仿射变换，其实是一种在x和y方向的变化率
   A_cur_ref.col(0) = (px_du - px_cur)/halfpatch_size;
   A_cur_ref.col(1) = (px_dv - px_cur)/halfpatch_size;
 }
 
-int getBestSearchLevel(
-    const Matrix2d& A_cur_ref,
-    const int max_level)
+/**
+ * @brief Compute best patch level in other image
+ * @param A_cur_ref
+ * @param max_level
+ * @return
+ */
+int getBestSearchLevel(const Matrix2d& A_cur_ref, const int max_level)
 {
-  // Compute patch level in other image
   int search_level = 0;
   double D = A_cur_ref.determinant();
   while(D > 3.0 && search_level < max_level)
@@ -69,6 +87,16 @@ int getBestSearchLevel(
   return search_level;
 }
 
+/**
+ * @brief
+ * @param A_cur_ref
+ * @param img_ref
+ * @param px_ref
+ * @param level_ref
+ * @param search_level
+ * @param halfpatch_size
+ * @param patch
+ */
 void warpAffine(
     const Matrix2d& A_cur_ref,
     const cv::Mat& img_ref,
@@ -94,7 +122,7 @@ void warpAffine(
     for (int x=0; x<patch_size; ++x, ++patch_ptr)
     {
       Vector2f px_patch(x-halfpatch_size, y-halfpatch_size);
-      px_patch *= (1<<search_level);
+      px_patch *= (1<<search_level); // patch tranform to level 0
       const Vector2f px(A_ref_cur*px_patch + px_ref_pyr);
       if (px[0]<0 || px[1]<0 || px[0]>=img_ref.cols-1 || px[1]>=img_ref.rows-1)
         *patch_ptr = 0;
@@ -132,10 +160,14 @@ void Matcher::createPatchFromPatchWithBorder()
   }
 }
 
-bool Matcher::findMatchDirect(
-    const Point& pt,
-    const Frame& cur_frame,
-    Vector2d& px_cur)
+/**
+ * @brief
+ * @param pt
+ * @param cur_frame
+ * @param px_cur
+ * @return
+ */
+bool Matcher::findMatchDirect(const Point& pt, const Frame& cur_frame, Vector2d& px_cur)
 {
   if(!pt.getCloseViewObs(cur_frame.pos(), ref_ftr_))
     return false;
@@ -144,12 +176,15 @@ bool Matcher::findMatchDirect(
       ref_ftr_->px.cast<int>()/(1<<ref_ftr_->level), halfpatch_size_+2, ref_ftr_->level))
     return false;
 
+  // 计算仿射变换矩阵2x2：patch因为视角的变换，应该具有一定的扭曲
   // warp affine
   warp::getWarpMatrixAffine(
       *ref_ftr_->frame->cam_, *cur_frame.cam_, ref_ftr_->px, ref_ftr_->f,
       (ref_ftr_->frame->pos() - pt.pos_).norm(),
       cur_frame.T_f_w_ * ref_ftr_->frame->T_f_w_.inverse(), ref_ftr_->level, A_cur_ref_);
+  // 获取搜索层
   search_level_ = warp::getBestSearchLevel(A_cur_ref_, Config::nPyrLevels()-1);
+  // 计算该特征的仿射变换，由当前帧到参考帧
   warp::warpAffine(A_cur_ref_, ref_ftr_->frame->img_pyr_[ref_ftr_->level], ref_ftr_->px,
                    ref_ftr_->level, search_level_, halfpatch_size_+1, patch_with_border_);
   createPatchFromPatchWithBorder();
@@ -172,7 +207,9 @@ bool Matcher::findMatchDirect(
       cur_frame.img_pyr_[search_level_], patch_with_border_, patch_,
       options_.align_max_iter, px_scaled);
   }
+
   px_cur = px_scaled * (1<<search_level_);
+
   return success;
 }
 

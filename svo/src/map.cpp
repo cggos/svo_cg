@@ -103,42 +103,33 @@ void Map::addKeyframe(FramePtr new_keyframe)
   keyframes_.push_back(new_keyframe);
 }
 
-void Map::getCloseKeyframes(
-    const FramePtr& frame,
-    std::list< std::pair<FramePtr,double> >& close_kfs) const
-{
-  for(auto kf : keyframes_)
-  {
+void Map::getCloseKeyframes(const FramePtr& frame, std::list< std::pair<FramePtr,double> >& close_kfs) const {
+  for (auto kf : keyframes_) {
     // check if kf has overlaping field of view with frame, use therefore KeyPoints
-    for(auto keypoint : kf->key_pts_)
-    {
-      if(keypoint == nullptr)
+    for (auto keypoint : kf->key_pts_) {
+      if (keypoint == nullptr)
         continue;
 
-      if(frame->isVisible(keypoint->point->pos_))
-      {
-        close_kfs.push_back(std::make_pair(kf, (frame->T_f_w_.translation()-kf->T_f_w_.translation()).norm()));
+      if (frame->isVisible(keypoint->point->pos_)) {
+        close_kfs.push_back(std::make_pair(kf, (frame->T_f_w_.translation() - kf->T_f_w_.translation()).norm()));
         break; // this keyframe has an overlapping field of view -> add to close_kfs
       }
     }
   }
 }
 
-FramePtr Map::getClosestKeyframe(const FramePtr& frame) const
-{
-  list< pair<FramePtr,double> > close_kfs;
+FramePtr Map::getClosestKeyframe(const FramePtr& frame) const {
+  list<pair<FramePtr, double> > close_kfs;
   getCloseKeyframes(frame, close_kfs);
-  if(close_kfs.empty())
-  {
+  if (close_kfs.empty()) {
     return nullptr;
   }
-
 
   // Sort KFs with overlap according to their closeness
   close_kfs.sort(boost::bind(&std::pair<FramePtr, double>::second, _1) <
                  boost::bind(&std::pair<FramePtr, double>::second, _2));
 
-  if(close_kfs.front().first != frame)
+  if (close_kfs.front().first != frame)
     return close_kfs.front().first;
   close_kfs.pop_front();
   return close_kfs.front().first;

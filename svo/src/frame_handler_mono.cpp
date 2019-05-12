@@ -190,6 +190,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   }
   double depth_mean, depth_min;
   frame_utils::getSceneDepth(*new_frame_, depth_mean, depth_min);
+  // A keyframe is selected if the Euclidean distance of the new frame relative to all keyframes exceeds 12% of the average scene depth
   if(!needNewKf(depth_mean) || tracking_quality_ == TRACKING_BAD)
   {
     depth_filter_->addFrame(new_frame_);
@@ -304,6 +305,12 @@ void FrameHandlerMono::setFirstFrame(const FramePtr& first_frame)
   stage_ = STAGE_DEFAULT_FRAME;
 }
 
+/**
+ * @brief A keyframe is selected if the Euclidean distance of the new frame relative to all keyframes
+ *        exceeds 12% of the average scene depth
+ * @param scene_depth_mean
+ * @return
+ */
 bool FrameHandlerMono::needNewKf(double scene_depth_mean)
 {
   for(auto it=overlap_kfs_.begin(), ite=overlap_kfs_.end(); it!=ite; ++it)

@@ -182,6 +182,7 @@ bool align2D(
       J[0] = 0.5 * (it[1] - it[-1]);
       J[1] = 0.5 * (it[ref_step] - it[-ref_step]);
       J[2] = 1;
+      // 梯度赋值，即保存每个像素点的梯度信息，因为是逆向组合算法，所以计算的是参考帧上的梯度信息
       *it_dx = J[0];
       *it_dy = J[1];
       H += J*J.transpose();
@@ -190,6 +191,7 @@ bool align2D(
   Matrix3f Hinv = H.inverse();
   float mean_diff = 0;
 
+  // 估算当前帧中的位置，因为前面的直接法已经有了光流初始值
   // Compute pixel location in new image:
   float u = cur_px_estimate.x();
   float v = cur_px_estimate.y();
@@ -218,7 +220,7 @@ bool align2D(
     float wBR = subpix_x * subpix_y;
 
     // loop through search_patch, interpolate
-    uint8_t* it_ref = ref_patch;
+    uint8_t* it_ref  = ref_patch;
     float* it_ref_dx = ref_patch_dx;
     float* it_ref_dy = ref_patch_dy;
 //    float new_chi2 = 0.0;
@@ -229,7 +231,9 @@ bool align2D(
       for(int x=0; x<patch_size_; ++x, ++it, ++it_ref, ++it_ref_dx, ++it_ref_dy)
       {
         float search_pixel = wTL*it[0] + wTR*it[1] + wBL*it[cur_step] + wBR*it[cur_step+1];
+        // 计算当前帧和参考帧patch像素点之间的残差
         float res = search_pixel - *it_ref + mean_diff;
+        // 残差乘以梯度为b
         Jres[0] -= res*(*it_ref_dx);
         Jres[1] -= res*(*it_ref_dy);
         Jres[2] -= res;
