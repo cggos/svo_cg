@@ -1,4 +1,6 @@
 .catkin_workspace
+.idea/
+cmake-build-debug/
 build/
 bin/
 lib/
