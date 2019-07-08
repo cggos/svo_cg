@@ -27,14 +27,39 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
 
 * **[rpg_vikit](https://github.com/uzh-rpg/rpg_vikit.git)** (git submodule)
 
+# Download
+
+```sh
+git clone https://github.com/cggos/svo_cg.git --recursive
+
+# or
+git clone https://github.com/cggos/svo_cg.git
+git submodule init
+git submodule update
+```
 
 # Build
 
-* download
-  - `git clone https://github.com/cggos/svo_cg.git --recursive`
-* build
-  - `cmake` for Plain CMake (No ROS)
-  - `catkin_make` or `catkin build` for ROS
+## with ROS
+
+* `catkin_make` or `catkin build`
+
+## without ROS
+
+* build vikit_common
+  ```sh
+  cd 3rdParty/rpg_vikit/vikit_common
+  gedit CMakeLists.txt # SET(USE_ROS FALSE)
+  mkdir build & cd build
+  cmake .. & make -j3
+  sudo make install
+  ```  
+
+* build svo
+  ```sh
+  mkdir build & cd build
+  cmake -DUSE_ROS=FALSE .. & make -j3
+  ```
 
 # Run
 
@@ -52,7 +77,6 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
   roslaunch svo_ros realsense_zr300.launch  [rviz:=true]
   ```
 
-
 ## without ROS
 
 * on a Dataset ([sin2_tex2_h1_v8_d.tar.gz](http://rpg.ifi.uzh.ch/datasets/sin2_tex2_h1_v8_d.tar.gz))
@@ -61,7 +85,7 @@ Modified version of [rpg_svo](https://github.com/uzh-rpg/rpg_svo)(commit d616106
 
   source ~/.bashrc
   cd ${SVO_DATASET_DIR}
-  wget http://rpg.ifi.uzh.ch/datasets/sin2_tex2_h1_v8_d.tar.gz -O - | tar -xz
+  [tsocks] wget http://rpg.ifi.uzh.ch/datasets/sin2_tex2_h1_v8_d.tar.gz -O - | tar -xz
 
   cd svo
   mkdir build & cd build
